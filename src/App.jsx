@@ -7,18 +7,14 @@ import LoginPage from "./pages/LoginPage";
 import PlanogramPage from "./pages/PlanogramPage";
 import StoreByStorePage from "./pages/StoreByStorePage";
 import SubmissionsPage from "./pages/SubmissionsPage";
-import TrainingPage from "./pages/TrainingPage";
 import UsersPage from "./pages/UsersPage";
 import SkuBrandsPage from "./pages/SkuBrandsPage";
 import SkuTrainingPage from "./pages/SkuTrainingPage";
-import TrainingUploadPage from "./pages/TrainingUploadPage";
 
 const pageComponents = {
   dashboard: DashboardPage,
   users: UsersPage,
   submissions: SubmissionsPage,
-  training: TrainingPage,
-  trainingUpload: TrainingUploadPage,
   sku: SkuBrandsPage,
   skuTraining: SkuTrainingPage,
   storeByStore: StoreByStorePage,
@@ -32,6 +28,32 @@ const App = () => {
   const [selectedBrand, setSelectedBrand] = useState(null);
   const [selectedSku, setSelectedSku] = useState(null);
 
+  const handleLogout = async () => {
+    const sessionToken = localStorage.getItem('sessionToken');
+
+    if (sessionToken) {
+      try {
+        const formData = new FormData();
+        formData.append("session_token", sessionToken);
+
+        await fetch('/logout', {
+          method: 'POST',
+          body: formData
+        });
+      } catch (err) {
+        console.error('Logout request failed:', err);
+      }
+    }
+
+    // Clear local storage
+    localStorage.removeItem('sessionToken');
+    localStorage.removeItem('userEmail');
+    localStorage.removeItem('userRole');
+
+    // Set auth state to false
+    setAuthed(false);
+  };
+
   if (!authed) {
     return (
       <ThemeProvider>
@@ -44,7 +66,7 @@ const App = () => {
 
   return (
     <ThemeProvider>
-      <AppLayout page={page} setPage={setPage}>
+      <AppLayout page={page} setPage={setPage} onLogout={handleLogout}>
         <CurrentPage
           page={page}
           setPage={setPage}

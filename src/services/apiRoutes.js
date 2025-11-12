@@ -11,6 +11,14 @@
   images: "/images",
   health: "/health",
   croppingGuide: "/test/cropping-guide",
+  addSkuWithBrand: '/add-sku-with-brand',
+  brandsFromMongodb: '/brands-from-mongodb',
+  skusByBrand: '/skus-by-brand',
+  updateTrainingStatus: '/update-training-status',
+  deleteSku: '/delete-sku',
+  login: '/login',
+  verifySession: '/verify-session',
+  logout: '/logout',
 };
 
 export default apiRoutes;

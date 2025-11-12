@@ -1,122 +1,220 @@
-﻿import React, { useMemo, useState } from "react";
-import { Icon } from "../components/icons";
-import DetailRow from "../components/sku/DetailRow";
-import SortableTable from "../components/tables/SortableTable";
+﻿import React, { useState, useEffect } from "react";
 import { Badge, Button, Card } from "../components/ui";
-import useProducts from "../hooks/data/useProducts";
+import SortableTable from "../components/tables/SortableTable";
+const BaseURL = 'http://localhost:8000';
+const SkuTrainingPage = ({ selectedBrand, setPage }) => {
+  const [actionOpenIndex, setActionOpenIndex] = useState(null);
+  const [skus, setSkus] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-const fallbackRows = Array.from({ length: 8 }).map((_, index) => ({
-  img: `https://picsum.photos/seed/lay${index}/160/100`,
-  id: `SKU${String(index + 1).padStart(3, "0")}`,
-  name: ["Lays Classic", "Lays Salt & Vinegar", "Lays Chile Limon"][index % 3],
-  brand: "Lays",
-  status: index % 4 === 0 ? "Queued" : "Trained",
-  addedBy: ["Admin A", "Admin B"][index % 2],
-  date: "2025-07-08",
-}));
+  const brandName = typeof selectedBrand === 'object' ? selectedBrand.name : selectedBrand;
 
-const mapProductsToRows = (products) =>
-  products
-    .filter((item) => item && typeof item === "object")
-    .map((item, index) => ({
-      img: item.preview ?? item.thumbnail ?? `https://picsum.photos/seed/product${index}/160/100`,
-      id: item.sku ?? item.id ?? `SKU${index}`,
-      name: item.name ?? item.title ?? "Unknown",
-      brand: item.brand ?? "--",
-      status: item.status ?? "Queued",
-      addedBy: item.created_by ?? "System",
-      date: item.created_at ?? "--",
-    }));
+  const fetchSkus = async () => {
+    if (!brandName) {
+      setError(new Error('No brand selected'));
+      setLoading(false);
+      return;
+    }
 
-const SkuTrainingPage = ({ setPage, selectedBrand }) => {
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState({});
-  const { products } = useProducts();
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`${BaseURL}/skus-by-brand/${encodeURIComponent(brandName)}`);
+      const result = await response.json();
+      if (result.success) {
+        setSkus(result.skus || []);
+      } else {
+        setError(new Error(result.error || 'Failed to fetch SKUs'));
+      }
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const rows = useMemo(() => {
-    const fromApi = mapProductsToRows(products);
-    return fromApi.length > 0 ? fromApi : fallbackRows;
-  }, [products]);
+  useEffect(() => {
+    fetchSkus();
+  }, [brandName]);
+
+  if (!brandName) {
+    return (
+      <Card title="SKU Training" subtitle="No brand selected.">
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">📦</div>
+          <div className="text-lg font-medium text-gray-600">Please select a brand first</div>
+          <Button onClick={() => setPage?.("sku")}>Go to Brands</Button>
+        </div>
+      </Card>
+    );
+  }
+
+  const handleDeleteSku = async (skuName) => {
+    if (confirm(`Are you sure you want to delete "${skuName}"? This will only hide it from display.`)) {
+      try {
+        const response = await fetch(`${BaseURL}/delete-sku/${encodeURIComponent(skuName)}`, {
+          method: 'DELETE'
+        });
+        const result = await response.json();
+
+        if (result.success) {
+          alert(`SKU "${skuName}" deleted from display`);
+          fetchSkus();
+        } else {
+          alert(`Failed to delete SKU: ${result.error || 'Unknown error'}`);
+        }
+      } catch (error) {
+        alert(`Failed to delete SKU: ${error.message}`);
+      }
+    }
+    setActionOpenIndex(null);
+  };
+
+  if (loading) {
+    return (
+      <Card title={`SKU Training - ${brandName}`} subtitle="Loading SKUs...">
+        <div className="text-center py-12">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+          <div className="mt-4">Loading SKUs...</div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (error || !brandName) {
+    return (
+      <Card title={`SKU Training - ${brandName || 'No Brand'}`} subtitle="Error loading SKUs.">
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">⚠️</div>
+          <div className="text-red-600 mb-4">
+            Error: {error?.message || 'No brand selected'}
+          </div>
+          <Button onClick={() => brandName ? fetchSkus() : setPage?.("sku")}>
+            {brandName ? 'Retry' : 'Go to Brands'}
+          </Button>
+        </div>
+      </Card>
+    );
+  }
 
   const columns = [
-    {
-      key: "img",
-      header: "SKU Image",
-      render: (value) => <img src={value} alt="sku" className="h-16 w-28 rounded object-cover" />,
-    },
-    { key: "id", header: "SKU Id" },
-    { key: "name", header: "SKU Name" },
-    { key: "brand", header: "Brand Name" },
-    {
-      key: "status",
-      header: "Training Status",
-      render: (value) => <Badge>{value}</Badge>,
-    },
-    { key: "addedBy", header: "Added By" },
-    { key: "date", header: "Created On" },
-    {
-      key: "actions",
-      header: "Actions",
-      render: (_, row) => (
+  {
+    key: "sku_name",
+    header: "SKU Name",
+    render: (value) => (
+      <div className="font-medium">{value}</div>
+    ),
+  },
+  {
+    key: "facings_count",
+    header: "Facings",
+    render: (value) => (
+      <div className="text-center">
+        <Badge className="bg-purple-100 text-purple-800">
+          {value || 10} facings
+        </Badge>
+      </div>
+    ),
+  },
+  {
+    key: "image_count",
+    header: "No. of Images",
+    render: (value) => (
+      <div className="text-center">
+        <Badge className="bg-blue-100 text-blue-800">
+          {value} image{value !== 1 ? 's' : ''}
+        </Badge>
+      </div>
+    ),
+  },
+  {
+    key: "added_by",
+    header: "Added By",
+    render: (value) => value || "Unknown"
+  },
+  {
+    key: "created_on",
+    header: "Created On",
+    render: (value) => {
+      if (!value) return "--";
+      const date = new Date(value);
+      return date.toLocaleDateString() + " " + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+  },
+  {
+    key: "training_status",
+    header: "Training Status",
+    render: (value) => (
+      <Badge tone="green">
+        Trained
+      </Badge>
+    ),
+  },
+  {
+    key: "actions",
+    header: "Actions",
+    render: (_, row, idx) => (
+      <div className="relative inline-block">
         <Button
           variant="secondary"
-          className="gap-1"
-          onClick={() => {
-            setActive(row);
-            setOpen(true);
-          }}
-          aria-haspopup="dialog"
+          className="gap-1 bg-red-50 text-red-600 hover:bg-red-100"
+          onClick={() => handleDeleteSku(row.sku_name)}
         >
-          Action <Icon.chevronDown className="h-4 w-4" />
+          Delete
         </Button>
-      ),
-    },
-  ];
+      </div>
+    ),
+  },
+];
 
   return (
-    <>
-      <Card
-        title={`SKU Training${selectedBrand ? ` - ${selectedBrand}` : ""}`}
-        subtitle="Upload, track, and train SKU data to improve recognition accuracy."
-        actions={<Button onClick={() => setPage?.("trainingUpload")}>Upload Image</Button>}
-      >
-        <SortableTable columns={columns} rows={rows} />
-      </Card>
+    <Card
+      title={`SKU Training - ${brandName}`}
+      subtitle={`Upload and track SKU data to improve recognition accuracy. ${skus.length} SKUs found.`}
+      actions={
+        <div className="flex gap-2">
+          <Button onClick={() => setPage?.("sku")}>← Back to Brands</Button>
+          <Button variant="secondary" onClick={() => fetchSkus()} disabled={loading}>
+            Refresh
+          </Button>
+        </div>
+      }
+    >
+      {skus.length > 0 ? (
+        <>
+          <SortableTable columns={columns} rows={skus} />
 
-      {open && (
-        <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/20 backdrop-blur-md p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setOpen(false)}
-        >
-          <div className="glass w-full max-w-3xl rounded-2xl border border-black/15 bg-white p-6 shadow-glass" onClick={(event) => event.stopPropagation()}>
-            <div className="mb-6 flex items-start justify-between">
-              <h3 className="text-lg font-semibold">SKU Training Details</h3>
-              <Button variant="ghost" onClick={() => setOpen(false)} aria-label="Close">
-                Close
-              </Button>
-            </div>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <img src={active.img} alt="sku" className="h-60 w-full rounded-2xl object-cover" />
-              <div className="space-y-3 text-sm">
-                <DetailRow label="SKU Id" value={active.id} />
-                <DetailRow label="SKU Name" value={active.name} />
-                <DetailRow label="Brand Name" value={active.brand} />
-                <DetailRow label="Training Status" value={active.status} />
-                <DetailRow label="Added By" value={active.addedBy} />
-                <DetailRow label="Created On" value={active.date} />
-                <div className="pt-2">
-                  <Button variant="secondary" className="gap-2">
-                    Action <Icon.chevronDown className="h-4 w-4" />
-                  </Button>
-                </div>
+          <div className="mt-6 text-sm text-gray-600">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="bg-gray-50 p-3 rounded-lg text-center">
+                <div className="font-semibold">Total SKUs</div>
+                <div className="text-lg">{skus.length}</div>
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg text-center">
+                <div className="font-semibold">Total Images</div>
+                <div className="text-lg">{skus.reduce((sum, sku) => sum + (sku.image_count || 0), 0)}</div>
+              </div>
+              <div className="bg-green-50 p-3 rounded-lg text-center">
+                <div className="font-semibold">Trained</div>
+                <div className="text-lg">{skus.filter(sku => sku.training_status === "Done").length}</div>
+              </div>
+              <div className="bg-orange-50 p-3 rounded-lg text-center">
+                <div className="font-semibold">Pending</div>
+                <div className="text-lg">{skus.filter(sku => sku.training_status !== "Done").length}</div>
               </div>
             </div>
           </div>
+        </>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-4xl mb-4">📦</div>
+          <div className="text-lg font-medium text-gray-600">No SKUs found for {brandName}</div>
+          <div className="text-sm text-gray-500 mb-6">Upload some SKUs using the Upload SKU button</div>
+          <Button onClick={() => setPage?.("sku")}>← Back to Brands</Button>
         </div>
       )}
-    </>
+    </Card>
   );
 };
 

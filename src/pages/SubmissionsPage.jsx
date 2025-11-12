@@ -2,61 +2,106 @@
 import { Icon } from "../components/icons";
 import { Button, Card } from "../components/ui";
 import SortableTable from "../components/tables/SortableTable";
-import useAnalysisReports from "../hooks/data/useAnalysisReports";
-
-const fallbackRows = Array.from({ length: 8 }).map((_, index) => ({
-  image: `https://picsum.photos/seed/sku${index}/160/100`,
-  by: ["Priya Mehta", "Ankit Shah", "Kavya Iyer"][index % 3],
-  store: ["Big Bazaar", "Store A", "Store B"][index % 3],
-  date: "2025-06-10",
-  osa: +(91 + (index % 3)).toFixed(1),
-  sos: +(47 + (index % 4)).toFixed(1),
-  pgc: +(78 + (index % 5)).toFixed(1),
-  city: ["Mumbai", "Delhi", "Bengaluru"][index % 3],
-}));
-
-const mapReportsToRows = (reports) =>
-  reports
-    .filter((item) => item && typeof item === "object")
-    .map((item, index) => ({
-      image: item.image_url ?? item.thumbnail ?? `https://picsum.photos/seed/api${index}/160/100`,
-      by: item.uploaded_by ?? item.user ?? "Unknown",
-      store: item.store ?? item.store_name ?? "Unknown Store",
-      date: item.date ?? item.created_at ?? "--",
-      osa: Number(item.osa ?? item.osa_percentage ?? 0),
-      sos: Number(item.sos ?? item.sos_percentage ?? 0),
-      pgc: Number(item.pgc ?? item.planogram ?? 0),
-      city: item.city ?? "All Locations",
-    }));
+import { fetchAnalysisReports } from "../services/apiService";
+import { useApiRequest } from "../hooks/useApiRequest";
 
 const SubmissionsPage = () => {
   const [locationOpen, setLocationOpen] = useState(false);
   const [location, setLocation] = useState("All Locations");
   const [actionOpenIndex, setActionOpenIndex] = useState(null);
-  const { reports, loading } = useAnalysisReports();
 
-  const apiRows = useMemo(() => mapReportsToRows(reports), [reports]);
-  const baseRows = apiRows.length > 0 ? apiRows : fallbackRows;
+  const { data: reportsData, loading, error, refetch } = useApiRequest(fetchAnalysisReports);
+
+  const apiRows = useMemo(() => {
+    if (!reportsData?.reports || reportsData.reports.length === 0) return [];
+
+    return reportsData.reports.map((report, index) => ({
+      filename: report.filename,
+      sessionId: report.session_id,
+      reportType: report.report_type,
+      fileSize: report.file_size_mb,
+      createdDate: report.created_date,
+      downloadUrl: report.download_url,
+      // Extract metrics from filename or use defaults
+      image: `https://picsum.photos/seed/${report.session_id}/160/100`,
+      by: "Field Agent", // Could be enhanced with user data
+      store: report.session_id.includes('analysis') ? "Store Analysis" : "Unknown Store",
+      date: report.created_date,
+      osa: 0, // These would come from parsed CSV data
+      sos: 0,
+      pgc: 0,
+      city: "Mumbai" // Could be enhanced with location data
+    }));
+  }, [reportsData]);
 
   const locations = useMemo(() => {
-    const uniqueCities = new Set(baseRows.map((row) => row.city || "All Locations"));
+    const uniqueCities = new Set(apiRows.map((row) => row.city || "All Locations"));
     return ["All Locations", ...Array.from(uniqueCities).filter((city) => city !== "All Locations")];
-  }, [baseRows]);
+  }, [apiRows]);
 
-  const rows = baseRows.filter((row) => location === "All Locations" || row.city === location);
+  const rows = apiRows.filter((row) => location === "All Locations" || row.city === location);
+
+  const handleDownload = (downloadUrl, filename) => {
+    window.open(downloadUrl, '_blank');
+  };
+
+  const handleViewReport = (sessionId) => {
+    alert(`Viewing detailed report for session: ${sessionId}`);
+    // Could open a modal or navigate to detailed view
+  };
 
   const columns = [
     {
       key: "image",
-      header: "Image",
-      render: (value) => <img src={value} alt="shelf" className="h-16 w-28 rounded object-cover" />,
+      header: "Analysis",
+      render: (value, row) => (
+        <div className="flex items-center space-x-3">
+          <img src={value} alt="analysis" className="h-16 w-28 rounded object-cover" />
+          <div className="text-xs text-gray-500">
+            <div>{row.reportType}</div>
+            <div>{row.fileSize} MB</div>
+          </div>
+        </div>
+      ),
     },
-    { key: "by", header: "Uploaded By" },
-    { key: "store", header: "Store Name" },
-    { key: "date", header: "Upload Date" },
-    { key: "osa", header: "OSA %", render: (value) => `${Number(value).toFixed(1)}%` },
-    { key: "sos", header: "SoS %", render: (value) => `${Number(value).toFixed(1)}%` },
-    { key: "pgc", header: "PGC %", render: (value) => `${Number(value).toFixed(1)}%` },
+    {
+      key: "sessionId",
+      header: "Session ID",
+      render: (value) => (
+        <div className="text-xs font-mono bg-gray-100 px-2 py-1 rounded">
+          {value.substring(0, 12)}...
+        </div>
+      )
+    },
+    { key: "store", header: "Store/Type" },
+    { key: "date", header: "Created Date" },
+    {
+      key: "osa",
+      header: "OSA %",
+      render: (value) => (
+        <span className="text-blue-600 font-semibold">
+          {value > 0 ? `${value.toFixed(1)}%` : "N/A"}
+        </span>
+      )
+    },
+    {
+      key: "sos",
+      header: "SoS %",
+      render: (value) => (
+        <span className="text-green-600 font-semibold">
+          {value > 0 ? `${value.toFixed(1)}%` : "N/A"}
+        </span>
+      )
+    },
+    {
+      key: "pgc",
+      header: "PGC %",
+      render: (value) => (
+        <span className="text-purple-600 font-semibold">
+          {value > 0 ? `${value.toFixed(1)}%` : "N/A"}
+        </span>
+      )
+    },
     {
       key: "actions",
       header: "Actions",
@@ -72,22 +117,35 @@ const SubmissionsPage = () => {
           </Button>
           {actionOpenIndex === idx && (
             <div className="glass absolute right-0 z-10 mt-1 w-40 rounded-xl border border-black/15 bg-white p-1">
-              {[
-                { k: "approve", label: "Approve" },
-                { k: "reject", label: "Reject" },
-                { k: "view", label: "View" },
-              ].map((a) => (
-                <button
-                  key={a.k}
-                  className="block w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-black/5"
-                  onClick={() => {
-                    setActionOpenIndex(null);
-                    alert(`${a.label} ${row.store} - ${row.city}`);
-                  }}
-                >
-                  {a.label}
-                </button>
-              ))}
+              <button
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-black/5"
+                onClick={() => {
+                  setActionOpenIndex(null);
+                  handleDownload(row.downloadUrl, row.filename);
+                }}
+              >
+                Download CSV
+              </button>
+              <button
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-black/5"
+                onClick={() => {
+                  setActionOpenIndex(null);
+                  handleViewReport(row.sessionId);
+                }}
+              >
+                View Details
+              </button>
+              <button
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm transition hover:bg-black/5 text-red-600"
+                onClick={() => {
+                  setActionOpenIndex(null);
+                  if (confirm(`Delete report ${row.filename}?`)) {
+                    alert("Delete functionality to be implemented");
+                  }
+                }}
+              >
+                Delete
+              </button>
             </div>
           )}
         </div>
@@ -97,12 +155,16 @@ const SubmissionsPage = () => {
 
   return (
     <Card
-      title="Image Submissions"
-      subtitle="Review shelf images uploaded by field agents along with OSA, SoS, and Planogram metrics."
+      title="Analysis Reports"
+      subtitle={`Review analysis reports generated by the system. ${reportsData?.count || 0} reports available (${reportsData?.total_size_mb || 0} MB total)`}
       actions={
         <div className="flex items-center gap-2">
-          <Button variant="secondary">
-            <Icon.calendar className="h-4 w-4" />
+          <Button
+            variant="secondary"
+            onClick={() => refetch()}
+            disabled={loading}
+          >
+            {loading ? "Refreshing..." : "Refresh"}
           </Button>
           <div className="relative">
             <Button
@@ -133,8 +195,28 @@ const SubmissionsPage = () => {
         </div>
       }
     >
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+          Error loading reports: {error.message}
+        </div>
+      )}
+
       <SortableTable columns={columns} rows={rows} />
-      {loading && <div className="mt-3 text-sm">Syncing with analysis service…</div>}
+
+      {loading && (
+        <div className="mt-3 text-sm text-gray-500 flex items-center gap-2">
+          <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+          Loading analysis reports...
+        </div>
+      )}
+
+      {!loading && rows.length === 0 && (
+        <div className="mt-8 text-center text-gray-500 py-8">
+          <div className="text-4xl mb-4">📊</div>
+          <div className="text-lg font-medium">No analysis reports found</div>
+          <div className="text-sm">Reports will appear here after users submit shelf analyses</div>
+        </div>
+      )}
     </Card>
   );
 };

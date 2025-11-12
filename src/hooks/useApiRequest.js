@@ -1,29 +1,29 @@
-﻿import { useCallback, useState } from "react";
+﻿import { useState, useEffect } from 'react';
 
-const useApiRequest = (apiCall) => {
+export const useApiRequest = (apiFunction, dependencies = []) => {
   const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [loading, setLoading] = useState(false);
 
-  const execute = useCallback(
-    async (...args) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const response = await apiCall(...args);
-        setData(response);
-        return response;
-      } catch (err) {
-        setError(err);
-        throw err;
-      } finally {
-        setLoading(false);
-      }
-    },
-    [apiCall],
-  );
+  const refetch = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await apiFunction();
+      setData(result);
+    } catch (err) {
+      setError(err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  return { data, error, loading, execute };
+  useEffect(() => {
+    refetch();
+  }, dependencies);
+
+  return { data, loading, error, refetch };
 };
 
+// Also export as default for backward compatibility
 export default useApiRequest;

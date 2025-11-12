@@ -75,6 +75,58 @@ export const fetchImages = (signal) => get(apiRoutes.images, { signal });
 export const fetchHealth = (signal) => get(apiRoutes.health, { signal });
 export const fetchCroppingGuide = (signal) => get(apiRoutes.croppingGuide, { signal });
 
+
+/**
+ * @param {string} brandName
+ * @param {string} skuName
+ * @param {string} addedBy
+ * @param {File[]} files
+ * @param {AbortSignal} [signal]
+ */
+export const addSkuWithBrand = (brandName, skuName, addedBy, files, signal) => {
+  const formData = new FormData();
+  formData.append("brand_name", brandName);
+  formData.append("sku_name", skuName);
+  formData.append("added_by", addedBy);
+  files.forEach((file) => formData.append("files", file));
+  return postFormData(apiRoutes.addSkuWithBrand, formData, { signal });
+};
+
+/**
+ * Fetch all brands from MongoDB with SKU counts
+ * @param {AbortSignal} [signal]
+ */
+export const fetchBrandsFromMongodb = (signal) => get(apiRoutes.brandsFromMongodb, { signal });
+
+/**
+ * Fetch SKUs for a specific brand
+ * @param {string} brandName
+ * @param {AbortSignal} [signal]
+ */
+export const fetchSkusByBrand = (brandName, signal) =>
+  get(`${apiRoutes.skusByBrand}/${encodeURIComponent(brandName)}`, { signal });
+
+/**
+ * Update training status for a SKU
+ * @param {string} skuName
+ * @param {string} status - "Queued", "Training", "Done", "Failed"
+ * @param {AbortSignal} [signal]
+ */
+export const updateTrainingStatus = (skuName, status, signal) => {
+  const formData = new FormData();
+  formData.append("status", status);
+  return postFormData(`${apiRoutes.updateTrainingStatus}/${encodeURIComponent(skuName)}`, formData, { signal });
+};
+
+/**
+ * Soft delete a SKU (hide from display)
+ * @param {string} skuName
+ * @param {AbortSignal} [signal]
+ */
+export const deleteSku = (skuName, signal) =>
+  client.request(`${apiRoutes.deleteSku}/${encodeURIComponent(skuName)}`, { method: "DELETE", signal });
+
+
 export default {
   fetchHome,
   searchSimilarImages,
@@ -88,4 +140,9 @@ export default {
   fetchImages,
   fetchHealth,
   fetchCroppingGuide,
+  addSkuWithBrand,
+  fetchBrandsFromMongodb,
+  fetchSkusByBrand,
+  updateTrainingStatus,
+  deleteSku,
 };
