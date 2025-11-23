@@ -15,37 +15,41 @@ const LoginPage = ({ onLogin }) => {
   const valid = /.+@.+\..+/.test(email) && password.length >= 6;
   const error = touched && !valid ? "Enter a valid email and 6+ char password" : "";
 
-  // Check for existing session on page load
+  // Check for existing JWT token on page load
   useEffect(() => {
     checkExistingSession();
   }, []);
 
   const checkExistingSession = async () => {
-    const sessionToken = localStorage.getItem('sessionToken');
-    if (sessionToken) {
-      try {
-        const formData = new FormData();
-        formData.append("session_token", sessionToken);
+    const accessToken = localStorage.getItem('access_token');
 
-        const response = await fetch('http://localhost:8000/verify-session', {
-          method: 'POST',
-          body: formData
+    if (accessToken) {
+      try {
+        const response = await fetch('http://localhost:8000/api/auth/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${accessToken}`
+          }
         });
 
         if (response.ok) {
           const result = await response.json();
           if (result.success) {
+            // Token is valid, restore user data
+            localStorage.setItem('user_data', JSON.stringify(result.user));
             localStorage.setItem('userEmail', result.user.email);
             onLogin();
             return;
           }
         }
 
-        // Clear invalid session
-        localStorage.removeItem('sessionToken');
+        // Clear invalid token
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
         localStorage.removeItem('userEmail');
       } catch (err) {
-        localStorage.removeItem('sessionToken');
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_data');
         localStorage.removeItem('userEmail');
       }
     }
@@ -65,7 +69,7 @@ const LoginPage = ({ onLogin }) => {
       formData.append("email", email.trim());
       formData.append("password", password.trim());
 
-      const response = await fetch('http://localhost:8000/login', {
+      const response = await fetch('http://localhost:8000/api/auth/login', {
         method: 'POST',
         body: formData
       });
@@ -73,15 +77,16 @@ const LoginPage = ({ onLogin }) => {
       const result = await response.json();
 
       if (response.ok && result.success) {
-        // Store session data
-        localStorage.setItem('sessionToken', result.session_token);
+        // Store JWT token and user data
+        localStorage.setItem('access_token', result.access_token);
+        localStorage.setItem('user_data', JSON.stringify(result.user));
         localStorage.setItem('userEmail', result.user.email);
         localStorage.setItem('userRole', result.user.role);
 
         // Call the onLogin callback
         onLogin();
       } else {
-        setLoginError(result.error || 'Invalid credentials');
+        setLoginError(result.detail || result.error || 'Invalid credentials');
       }
     } catch (err) {
       setLoginError('Server connection failed. Please check if the backend is running.');

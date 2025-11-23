@@ -8,51 +8,26 @@ import PlanogramPage from "./pages/PlanogramPage";
 import StoreByStorePage from "./pages/StoreByStorePage";
 import SubmissionsPage from "./pages/SubmissionsPage";
 import UsersPage from "./pages/UsersPage";
-import SkuBrandsPage from "./pages/SkuBrandsPage";
 import SkuTrainingPage from "./pages/SkuTrainingPage";
+import OrganizationPage from "./pages/OrganizationPage";
+import OrganizationDetailsPage from './pages/OrganizationDetailsPage';
 
 const pageComponents = {
   dashboard: DashboardPage,
   users: UsersPage,
   submissions: SubmissionsPage,
-  sku: SkuBrandsPage,
-  skuTraining: SkuTrainingPage,
+  training: SkuTrainingPage,
+  sku: OrganizationPage,
   storeByStore: StoreByStorePage,
   export: ExportPage,
   planogram: PlanogramPage,
+  organizationDetails: OrganizationDetailsPage,
 };
 
 const App = () => {
   const [authed, setAuthed] = useState(false);
   const [page, setPage] = useState("dashboard");
-  const [selectedBrand, setSelectedBrand] = useState(null);
-  const [selectedSku, setSelectedSku] = useState(null);
-
-  const handleLogout = async () => {
-    const sessionToken = localStorage.getItem('sessionToken');
-
-    if (sessionToken) {
-      try {
-        const formData = new FormData();
-        formData.append("session_token", sessionToken);
-
-        await fetch('/logout', {
-          method: 'POST',
-          body: formData
-        });
-      } catch (err) {
-        console.error('Logout request failed:', err);
-      }
-    }
-
-    // Clear local storage
-    localStorage.removeItem('sessionToken');
-    localStorage.removeItem('userEmail');
-    localStorage.removeItem('userRole');
-
-    // Set auth state to false
-    setAuthed(false);
-  };
+  const [selectedOrgId, setSelectedOrgId] = useState(null); // ✅ NEW: Store selected org
 
   if (!authed) {
     return (
@@ -66,14 +41,12 @@ const App = () => {
 
   return (
     <ThemeProvider>
-      <AppLayout page={page} setPage={setPage} onLogout={handleLogout}>
+      <AppLayout page={page} setPage={setPage}>
         <CurrentPage
           page={page}
           setPage={setPage}
-          selectedBrand={selectedBrand}
-          setSelectedBrand={setSelectedBrand}
-          selectedSku={selectedSku}
-          setSelectedSku={setSelectedSku}
+          selectedOrgId={selectedOrgId}           // ✅ Pass selected org ID
+          setSelectedOrgId={setSelectedOrgId}    // ✅ Pass setter
         />
       </AppLayout>
     </ThemeProvider>
