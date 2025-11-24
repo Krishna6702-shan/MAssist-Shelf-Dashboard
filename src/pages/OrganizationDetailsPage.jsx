@@ -1,18 +1,22 @@
 import React, { useState, useEffect } from "react";
 import { Badge, Button, Card } from "../components/ui";
 
-const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
+const OrganizationDetailsPage = ({ setPage, selectedOrgId, setSelectedOrgId }) => {
   const [organization, setOrganization] = useState(null);
   const [activeTab, setActiveTab] = useState("skus");
   const [skus, setSkus] = useState([]);
+  const [shops, setShops] = useState([]);  // ✅ NEW: Shops state
   const [loading, setLoading] = useState(true);
+  const [shopsLoading, setShopsLoading] = useState(false);  // ✅ NEW: Shops loading
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [showAddShopModal, setShowAddShopModal] = useState(false);  // ✅ NEW: Add shop modal
 
   useEffect(() => {
     if (selectedOrgId) {
       fetchOrganizationDetails();
       fetchSKUs();
+      fetchShops();  // ✅ NEW: Fetch shops on load
     }
   }, [selectedOrgId]);
 
@@ -59,12 +63,37 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
     }
   };
 
+  // ✅ NEW: Fetch shops function
+  const fetchShops = async () => {
+    try {
+      setShopsLoading(true);
+      const token = localStorage.getItem('access_token');
+      const response = await fetch(`http://localhost:8000/api/org/${selectedOrgId}/shops`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setShops(result.shops || []);
+      }
+    } catch (err) {
+      console.error('Error fetching shops:', err);
+    } finally {
+      setShopsLoading(false);
+    }
+  };
+
   const filteredSkus = skus.filter(sku =>
     sku.sku_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     sku.sku_id.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // ✅ Show loading if no org selected
+  // ✅ NEW: Filter shops
+  const filteredShops = shops.filter(shop =>
+    shop.shop_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    shop.shop_id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   if (!selectedOrgId) {
     return (
       <div className="flex items-center justify-center h-screen">
@@ -89,7 +118,7 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
       {/* Header */}
       <div className="mb-6">
         <Button
-          onClick={() => setPage('sku')}  // ✅ Navigate back using setPage
+          onClick={() => setPage('sku')}
           variant="secondary"
           className="mb-4"
         >
@@ -144,7 +173,7 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
               : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
           }`}
         >
-          Shops ({organization.shop_count || 0})
+          Shops ({shops.length})
         </button>
       </div>
 
@@ -166,7 +195,6 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
               </Button>
             </div>
 
-            {/* Search */}
             <input
               type="text"
               placeholder="Search by SKU name or ID..."
@@ -198,7 +226,6 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
                   key={sku.sku_id}
                   className="border-2 border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
                 >
-                  {/* Header */}
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex-1">
                       <h3 className="font-bold text-lg text-gray-900 mb-1">{sku.sku_name}</h3>
@@ -209,7 +236,6 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
                     <Badge tone="green" className="text-xs">Active</Badge>
                   </div>
 
-                  {/* Details Grid */}
                   <div className="space-y-3 mb-4">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-gray-600">Brand</span>
@@ -241,11 +267,101 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
                       </span>
                     </div>
                   </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
-                  {/* Footer */}
-                  <div className="pt-4 border-t border-gray-200">
-                    <div className="text-sm text-center text-gray-500">
-                      Click for details (Coming soon)
+      {/* ✅ NEW: Shops Tab - Display shops like SKUs */}
+      {activeTab === "shops" && (
+        <Card>
+          <div className="mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-gray-900">Shop Locations</h2>
+              <div className="flex gap-2">
+                <Button onClick={fetchShops} variant="secondary">
+                  Refresh
+                </Button>
+                <Button
+                  onClick={() => setShowAddShopModal(true)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Add Shop
+                </Button>
+              </div>
+            </div>
+
+            <input
+              type="text"
+              placeholder="Search by shop name or ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+            />
+          </div>
+
+          {shopsLoading ? (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+              <div className="mt-4 text-gray-600">Loading shops...</div>
+            </div>
+          ) : filteredShops.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">🏪</div>
+              <div className="text-xl font-semibold text-gray-600 mb-2">
+                {searchTerm ? 'No shops found' : 'No shops yet'}
+              </div>
+              <div className="text-gray-500 mb-6">
+                {searchTerm ? 'Try a different search term' : `Add your first shop to ${organization.org_name}`}
+              </div>
+              <Button
+                onClick={() => setShowAddShopModal(true)}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                Add First Shop
+              </Button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredShops.map((shop) => (
+                <div
+                  key={shop.shop_id}
+                  className="border-2 border-gray-200 rounded-xl p-5 hover:border-blue-500 hover:shadow-lg transition-all cursor-pointer"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex-1">
+                      <h3 className="font-bold text-lg text-gray-900 mb-1">{shop.shop_name}</h3>
+                      <p className="text-xs text-gray-500 font-mono bg-gray-100 px-2 py-1 rounded inline-block">
+                        {shop.shop_id}
+                      </p>
+                    </div>
+                    <Badge tone="green" className="text-xs">Active</Badge>
+                  </div>
+
+                  <div className="space-y-3 mb-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Location</span>
+                      <span className="text-sm font-semibold text-gray-900">{shop.shop_location}</span>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Type</span>
+                      <Badge className="bg-blue-100 text-blue-800 text-xs">
+                        {shop.shop_type}
+                      </Badge>
+                    </div>
+
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-gray-600">Added</span>
+                      <span className="text-xs text-gray-500">
+                        {new Date(shop.created_at).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -255,28 +371,176 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId }) => {
         </Card>
       )}
 
-      {/* Shops Tab */}
-      {activeTab === "shops" && (
-        <Card>
-          <div className="text-center py-16">
-            <div className="text-7xl mb-4">🏪</div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Shops Coming Soon</h3>
-            <p className="text-gray-600 mb-6">
-              Manage retail locations and planograms for {organization.org_name}
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-              {/* Dummy Shop Cards */}
-              {[1, 2, 3].map((num) => (
-                <div key={num} className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-400">
-                  <div className="text-3xl mb-2">🏪</div>
-                  <div className="font-medium">Shop {num}</div>
-                  <div className="text-sm">Coming soon</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
+      {/* ✅ NEW: Add Shop Modal */}
+      {showAddShopModal && (
+        <AddShopModal
+          orgId={selectedOrgId}
+          orgName={organization.org_name}
+          onClose={() => setShowAddShopModal(false)}
+          onSuccess={() => {
+            setShowAddShopModal(false);
+            fetchShops();
+          }}
+        />
       )}
+    </div>
+  );
+};
+
+const AddShopModal = ({ orgId, orgName, onClose, onSuccess }) => {
+  const [shopId, setShopId] = useState("");
+  const [shopName, setShopName] = useState("");
+  const [shopLocation, setShopLocation] = useState("");
+  const [shopType, setShopType] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleCreate = async () => {
+    if (!shopId.trim()) {
+      setError("Shop ID is required");
+      return;
+    }
+    if (!shopName.trim()) {
+      setError("Shop name is required");
+      return;
+    }
+    if (!shopLocation.trim()) {
+      setError("Shop location is required");
+      return;
+    }
+    if (!shopType.trim()) {
+      setError("Shop type is required");
+      return;
+    }
+
+    setCreating(true);
+    setError("");
+
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        setError("Please login again");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("shop_id", shopId.trim());
+      formData.append("shop_name", shopName.trim());
+      formData.append("shop_location", shopLocation.trim());
+      formData.append("shop_type", shopType.trim());
+
+      const response = await fetch(`http://localhost:8000/api/org/${orgId}/add-shop`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        onSuccess();
+      } else {
+        setError(result.detail || result.message || "Failed to add shop");
+      }
+    } catch (err) {
+      setError(`Failed: ${err.message}`);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full mx-4">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h2 className="text-2xl font-bold">Add Shop to {orgName}</h2>
+            <p className="text-sm text-gray-500 mt-1">Add retail location details</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 text-2xl"
+            disabled={creating}
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Shop ID</label>
+            <input
+              type="text"
+              value={shopId}
+              onChange={(e) => setShopId(e.target.value)}
+              placeholder="e.g., SHOP001"
+              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+              disabled={creating}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Shop Name</label>
+            <input
+              type="text"
+              value={shopName}
+              onChange={(e) => setShopName(e.target.value)}
+              placeholder="e.g., Big Bazaar Phoenix"
+              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+              disabled={creating}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <input
+              type="text"
+              value={shopLocation}
+              onChange={(e) => setShopLocation(e.target.value)}
+              placeholder="e.g., Mumbai, Maharashtra"
+              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+              disabled={creating}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Shop Type</label>
+            <input
+              type="text"
+              value={shopType}
+              onChange={(e) => setShopType(e.target.value)}
+              placeholder="e.g., Retail Store, Warehouse"
+              className="w-full p-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none"
+              disabled={creating}
+            />
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border-2 border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-3 pt-4">
+            <button
+              onClick={onClose}
+              disabled={creating}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleCreate}
+              disabled={creating || !shopId.trim() || !shopName.trim() || !shopLocation.trim() || !shopType.trim()}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+            >
+              {creating ? "Adding..." : "Add Shop"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

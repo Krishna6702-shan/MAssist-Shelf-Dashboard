@@ -11,22 +11,22 @@ const navItems = [
   { key: "submissions", label: "Submissions" },
   { key: "training", label: "Training" },
   { key: "sku", label: "Organizations" },
+  { key: "shops", label: "Shops" },              // ✅ NEW: Add Shops
   { key: "storeByStore", label: "Store-by-Store" },
   { key: "export", label: "Export" },
-  { key: "planogram", label: "Planogram" },
+  // { key: "planogram", label: "Planogram" },
 ];
 
 const AppLayout = ({ page, setPage, children }) => {
   useRevealAnimation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [userName, setUserName] = useState("");
 
-  // ✅ JWT-based logout
   const handleLogout = async () => {
     try {
       const accessToken = localStorage.getItem("access_token");
 
-      // Try to call backend logout (optional - clears server-side sessions if any)
       if (accessToken) {
         try {
           await fetch("http://localhost:8000/api/auth/logout", {
@@ -37,30 +37,23 @@ const AppLayout = ({ page, setPage, children }) => {
           });
         } catch (err) {
           console.error("Backend logout failed:", err);
-          // Continue anyway - client-side logout is more important
         }
       }
 
-      // ✅ Clear all auth data
       localStorage.removeItem("access_token");
       localStorage.removeItem("user_data");
       localStorage.removeItem("sessionToken");
       localStorage.removeItem("userEmail");
       localStorage.removeItem("userRole");
 
-      // ✅ Redirect to login
       window.location.href = "/";
 
     } catch (err) {
       console.error("Logout error:", err);
-      // Force logout even on error
       localStorage.clear();
       window.location.href = "/";
     }
   };
-
-  // ✅ Get user info for display (optional)
-  const [userName, setUserName] = useState("");
 
   useEffect(() => {
     try {
@@ -164,7 +157,6 @@ const AppLayout = ({ page, setPage, children }) => {
           </div>
 
           <div className="ml-4 flex items-center gap-3">
-            {/* ✅ Show username */}
             {userName && (
               <span className="hidden sm:inline text-sm text-gray-700">
                 Hi, {userName}
@@ -189,4 +181,3 @@ const AppLayout = ({ page, setPage, children }) => {
 };
 
 export default AppLayout;
-

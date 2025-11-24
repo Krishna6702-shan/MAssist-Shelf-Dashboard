@@ -11,6 +11,7 @@ import UsersPage from "./pages/UsersPage";
 import SkuTrainingPage from "./pages/SkuTrainingPage";
 import OrganizationPage from "./pages/OrganizationPage";
 import OrganizationDetailsPage from './pages/OrganizationDetailsPage';
+import ShopManagementPage from './pages/ShopManagementPage';  // ✅ NEW: Import shop page
 
 const pageComponents = {
   dashboard: DashboardPage,
@@ -18,6 +19,7 @@ const pageComponents = {
   submissions: SubmissionsPage,
   training: SkuTrainingPage,
   sku: OrganizationPage,
+  shops: ShopManagementPage,           // ✅ NEW: Add shops page
   storeByStore: StoreByStorePage,
   export: ExportPage,
   planogram: PlanogramPage,
@@ -27,7 +29,7 @@ const pageComponents = {
 const App = () => {
   const [authed, setAuthed] = useState(false);
   const [page, setPage] = useState("dashboard");
-  const [selectedOrgId, setSelectedOrgId] = useState(null); // ✅ NEW: Store selected org
+  const [selectedOrgId, setSelectedOrgId] = useState(null);
 
   if (!authed) {
     return (
@@ -45,8 +47,8 @@ const App = () => {
         <CurrentPage
           page={page}
           setPage={setPage}
-          selectedOrgId={selectedOrgId}           // ✅ Pass selected org ID
-          setSelectedOrgId={setSelectedOrgId}    // ✅ Pass setter
+          selectedOrgId={selectedOrgId}
+          setSelectedOrgId={setSelectedOrgId}
         />
       </AppLayout>
     </ThemeProvider>
