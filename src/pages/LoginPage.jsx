@@ -3,6 +3,9 @@ import { Icon } from "../components/icons";
 import IllustrationFrame from "../components/login/IllustrationFrame";
 import Logo from "../components/branding/Logo";
 import { Button, Field } from "../components/ui";
+import apiConfig from "../config/apiConfig";
+
+const baseUrl = apiConfig.baseUrl;
 
 const LoginPage = ({ onLogin }) => {
   const [email, setEmail] = useState("");
@@ -25,7 +28,7 @@ const LoginPage = ({ onLogin }) => {
 
     if (accessToken) {
       try {
-        const response = await fetch('http://localhost:8000/api/auth/me', {
+        const response = await fetch(`${baseUrl}/api/auth/me`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${accessToken}`
@@ -69,7 +72,7 @@ const LoginPage = ({ onLogin }) => {
       formData.append("email", email.trim());
       formData.append("password", password.trim());
 
-      const response = await fetch('http://localhost:8000/api/auth/login', {
+      const response = await fetch(`${baseUrl}/api/auth/login`, {
         method: 'POST',
         body: formData
       });

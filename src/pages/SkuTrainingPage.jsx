@@ -1,6 +1,9 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
 import { Badge, Button, Card, Field } from "../components/ui";
 import SortableTable from "../components/tables/SortableTable";
+import apiConfig from "../config/apiConfig";
+
+const baseUrl = apiConfig.baseUrl;
 
 // ============================================================================
 // MAIN COMPONENT
@@ -36,7 +39,7 @@ const SkuTrainingPage = () => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/org/list', {
+      const response = await fetch(`${baseUrl}/api/org/list`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -70,7 +73,7 @@ const SkuTrainingPage = () => {
     setError(null);
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/org/${orgId}/skus`, {
+      const response = await fetch(`${baseUrl}/api/org/${orgId}/skus`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -319,7 +322,7 @@ const AddSkuModal = ({ orgId, orgName, onClose, onSuccess }) => {
 
       setUploadProgress(50);
 
-      const response = await fetch(`http://localhost:8000/api/org/${orgId}/add-sku`, {
+      const response = await fetch(`${baseUrl}/api/org/${orgId}/add-sku`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

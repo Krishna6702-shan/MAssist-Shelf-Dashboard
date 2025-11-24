@@ -4,6 +4,9 @@ import { Icon } from "../icons";
 import { Button } from "../ui";
 import VoiceWaveBg from "../background/VoiceWaveBg";
 import useRevealAnimation from "../../hooks/useRevealAnimation";
+import apiConfig from "../../config/apiConfig";
+
+const baseUrl = apiConfig.baseUrl;
 
 const navItems = [
   { key: "dashboard", label: "Dashboard" },
@@ -29,7 +32,7 @@ const AppLayout = ({ page, setPage, children }) => {
 
       if (accessToken) {
         try {
-          await fetch("http://localhost:8000/api/auth/logout", {
+          await fetch(`${baseUrl}/api/auth/logout`, {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${accessToken}`

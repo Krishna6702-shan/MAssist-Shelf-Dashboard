@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Badge, Button, Card } from "../components/ui";
+import apiConfig from "../config/apiConfig";
+
+const baseUrl = apiConfig.baseUrl;
 
 const OrganizationDetailsPage = ({ setPage, selectedOrgId, setSelectedOrgId }) => {
   const [organization, setOrganization] = useState(null);
@@ -23,7 +26,7 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId, setSelectedOrgId }) =
   const fetchOrganizationDetails = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/org/${selectedOrgId}`, {
+      const response = await fetch(`${baseUrl}/api/org/${selectedOrgId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -48,7 +51,7 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId, setSelectedOrgId }) =
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/org/${selectedOrgId}/skus`, {
+      const response = await fetch(`${baseUrl}/api/org/${selectedOrgId}/skus`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -68,7 +71,7 @@ const OrganizationDetailsPage = ({ setPage, selectedOrgId, setSelectedOrgId }) =
     try {
       setShopsLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/org/${selectedOrgId}/shops`, {
+      const response = await fetch(`${baseUrl}/api/org/${selectedOrgId}/shops`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -582,7 +585,7 @@ const AddShopModal = ({ orgId, orgName, onClose, onSuccess }) => {
         formData.append("planogram_data", JSON.stringify(planogram));
       }
 
-      const response = await fetch(`http://localhost:8000/api/org/${orgId}/add-shop`, {
+      const response = await fetch(`${baseUrl}/api/org/${orgId}/add-shop`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

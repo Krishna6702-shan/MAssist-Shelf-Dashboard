@@ -1,5 +1,8 @@
 ﻿import React, { useState, useEffect } from "react";
 import { Badge, Button, Card, Field } from "../components/ui";
+import apiConfig from "../config/apiConfig";
+
+const baseUrl = apiConfig.baseUrl;
 
 const OrganizationPage = ({ page, setPage, setSelectedOrgId }) => {
   const [organizations, setOrganizations] = useState([]);
@@ -20,7 +23,7 @@ const OrganizationPage = ({ page, setPage, setSelectedOrgId }) => {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/org/list', {
+      const response = await fetch(`${baseUrl}/api/org/list`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -192,7 +195,7 @@ const CreateOrganizationModal = ({ onClose, onSuccess }) => {
       formData.append("org_type", orgType);
       formData.append("location", location.trim());
 
-      const response = await fetch('http://localhost:8000/api/org/create', {
+      const response = await fetch(`${baseUrl}/api/org/create`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

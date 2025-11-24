@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Badge, Button, Card, Field } from "../components/ui";
+import apiConfig from "../config/apiConfig";
+
+const baseUrl = apiConfig.baseUrl;
 
 const ShopManagementPage = ({ setPage, selectedOrgId, setSelectedOrgId }) => {
   const [organizations, setOrganizations] = useState([]);
@@ -23,7 +26,7 @@ const ShopManagementPage = ({ setPage, selectedOrgId, setSelectedOrgId }) => {
   const fetchOrganizations = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch('http://localhost:8000/api/org/list', {
+      const response = await fetch(`${baseUrl}/api/org/list`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -43,7 +46,7 @@ const ShopManagementPage = ({ setPage, selectedOrgId, setSelectedOrgId }) => {
     try {
       setLoading(true);
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/org/${selectedOrgId}/shops`, {
+      const response = await fetch(`${baseUrl}/api/org/${selectedOrgId}/shops`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -231,7 +234,7 @@ const AddShopModal = ({ orgId, orgName, onClose, onSuccess }) => {
   const fetchOrgSkus = async () => {
     try {
       const token = localStorage.getItem('access_token');
-      const response = await fetch(`http://localhost:8000/api/org/${orgId}/skus`, {
+      const response = await fetch(`${baseUrl}/api/org/${orgId}/skus`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -412,7 +415,7 @@ const AddShopModal = ({ orgId, orgName, onClose, onSuccess }) => {
         formData.append("facings_data", JSON.stringify(facingsDict));
       }
 
-      const response = await fetch(`http://localhost:8000/api/org/${orgId}/add-shop`, {
+      const response = await fetch(`${baseUrl}/api/org/${orgId}/add-shop`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
