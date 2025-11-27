@@ -4,7 +4,7 @@
   calculateMetrics: "/calculate-metrics",
   addNewProduct: "/add-new-product",
   analyzeShelfWithPlanogram: "/analyze-shelf-with-planogram",
-  analysisReports: "/analysis-reports",
+  analysisReports: "/api/dashboard",
   shelfAnalysisStatus: "/shelf-analysis-status",
   debugDatabase: "/debug/database",
   products: "/products",
@@ -19,6 +19,7 @@
   login: '/login',
   verifySession: '/verify-session',
   logout: '/logout',
+  dashboard: "/api/dashboard",
 };
 
 export default apiRoutes;

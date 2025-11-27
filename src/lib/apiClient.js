@@ -18,6 +18,15 @@ const buildUrl = (path) => {
 
 const request = async (path, { method = "GET", headers = {}, body, signal } = {}) => {
   const finalHeaders = new Headers(apiConfig.defaultHeaders);
+  // Inject bearer token if present
+  try {
+    const token = localStorage.getItem("access_token");
+    if (token) {
+      finalHeaders.set("Authorization", `Bearer ${token}`);
+    }
+  } catch {
+    // ignore if localStorage unavailable
+  }
   Object.entries(headers).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       finalHeaders.set(key, value);

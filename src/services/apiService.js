@@ -126,6 +126,31 @@ export const updateTrainingStatus = (skuName, status, signal) => {
 export const deleteSku = (skuName, signal) =>
   client.request(`${apiRoutes.deleteSku}/${encodeURIComponent(skuName)}`, { method: "DELETE", signal });
 
+/**
+ * Fetch dashboard metrics, trends, and store rollups.
+ * @param {{
+ *  org_id?: string;
+ *  shop_ids?: string[];
+ *  date_from?: string;
+ *  date_to?: string;
+ *  granularity?: string;
+ *  compare_to?: string;
+ * }} params
+ * @param {AbortSignal} [signal]
+ */
+export const fetchDashboard = (params = {}, signal) => {
+  const searchParams = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null) return;
+    if (Array.isArray(value)) {
+      value.forEach((v) => searchParams.append(`${key}[]`, v));
+    } else {
+      searchParams.append(key, value);
+    }
+  });
+  const path = searchParams.toString() ? `${apiRoutes.dashboard}?${searchParams.toString()}` : apiRoutes.dashboard;
+  return get(path, { signal });
+};
 
 export default {
   fetchHome,
@@ -145,4 +170,5 @@ export default {
   fetchSkusByBrand,
   updateTrainingStatus,
   deleteSku,
+  fetchDashboard,
 };
